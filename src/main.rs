@@ -254,8 +254,8 @@ fn systemd_pid() -> Option<Pid> {
         }
     }
 
-    let proc = read_dir("/proc").expect("failed to read /proc");
-    for entry in proc {
+    let proc_dir = read_dir("/proc").expect("failed to read /proc");
+    for entry in proc_dir {
         // Ignore errors, such as EPERM
         if let Ok(entry) = entry {
             if let Some(pid) = systemd_pid_of(&entry) {
