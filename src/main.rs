@@ -48,19 +48,28 @@ struct Opt {
 }
 
 fn main() {
-    if let Err(e) = main2() {
+    let opt = Opt::from_args();
+    if opt.verbose {
+        std::env::set_var("GENIE_LOG", "info");
+    }
+    env_logger::init_from_env(
+        env_logger::Env::new()
+            .filter("GENIE_LOG")
+            .write_style("GENIE_LOG_STYLE"),
+    );
+    if let Err(e) = main2(opt) {
         eprintln!("genie: {}", e);
         exit(1);
     }
 }
 
-fn main2() -> Result<(), CommandError> {
-    let mut opt = Opt::from_args();
+fn main2(mut opt: Opt) -> Result<(), CommandError> {
     if !opt.initialize && !opt.shell && opt.command.is_none() && !opt.shutdown {
         return Err(CommandError::NoCommand);
     }
     opt.prefix = infer_prefix();
     let opt = opt;
+    log::debug!("opt = {:?}", opt);
 
     if OS != "linux" {
         return Err(CommandError::NotLinux);
@@ -96,6 +105,7 @@ fn initialize(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
     let systemd_pid: Option<Pid> = systemd_pid();
 
     if systemd_pid.is_some() {
+        log::info!("bottle already exists (no need to initialize).");
         return Ok(());
     }
 
@@ -103,7 +113,10 @@ fn initialize(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
 }
 
 fn initialize_bottle(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
+    log::info!("initializing bottle.");
+
     // Dump the envvars
+    log::info!("dumping WSL environment variables.");
     let dump_cmd = format!("{}/libexec/genie/dumpwslenv.sh", opt.prefix);
     let result = Command::new(&dump_cmd)
         .output()
@@ -113,8 +126,10 @@ fn initialize_bottle(opt: &Opt, config: &Configuration) -> Result<(), CommandErr
     }
 
     // TODO: updateHostname
+    log::info!("generating new hostname.");
 
     // Run systemd in a container.
+    log::info!("starting systemd.");
     let result = Command::new("daemonize")
         .arg(&config.unshare)
         .args(&["-fp", "--propagation", "shared", "--mount-proc", "systemd"])
