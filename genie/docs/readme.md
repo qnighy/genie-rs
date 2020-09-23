@@ -1,6 +1,6 @@
-# genie
+This is a work-in-progress Rust port of [genie](https://github.com/arkane-systems/genie). The description below may be incorrect for the Rust port.
 
-[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/I3I1VA18)
+# genie
 
 A quick way into a systemd "bottle" for WSL
 
