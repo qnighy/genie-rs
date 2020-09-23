@@ -91,7 +91,7 @@ fn main2() -> Result<(), CommandError> {
 }
 
 fn initialize(_opt: &Opt, config: &crate::config::Configuration) -> Result<(), CommandError> {
-    let systemd_pid: Option<Pid> = systemd_pid(); // TODO
+    let systemd_pid: Option<Pid> = systemd_pid();
 
     if systemd_pid.is_some() {
         return Ok(());
@@ -129,7 +129,7 @@ fn initialize(_opt: &Opt, config: &crate::config::Configuration) -> Result<(), C
 }
 
 fn shutdown(_opt: &Opt, _config: &crate::config::Configuration) -> Result<(), CommandError> {
-    let systemd_pid: Option<Pid> = systemd_pid(); // TODO
+    let systemd_pid: Option<Pid> = systemd_pid();
 
     let systemd_pid = systemd_pid.unwrap_or_else(|| todo!("error handling"));
     if systemd_pid.as_raw() == 1 {
