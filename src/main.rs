@@ -156,6 +156,7 @@ fn shutdown(_opt: &Opt, _config: &Configuration) -> Result<(), CommandError> {
     }
 
     rootify(|| -> Result<(), CommandError> {
+        log::info!("running systemctl poweroff within bottle");
         // Call systemctl to trigger shutdown.
         let result = Command::new("nsenter")
             .args(&[
@@ -172,6 +173,7 @@ fn shutdown(_opt: &Opt, _config: &Configuration) -> Result<(), CommandError> {
             return Err(CommandError::CommandStatus("nsenter".into(), result.status));
         }
 
+        log::info!("waiting for systemd to exit");
         wait_for_exit(systemd_pid, Instant::now() + Duration::from_secs(16));
 
         // TODO: updateHostname
