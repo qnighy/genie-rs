@@ -13,6 +13,8 @@ use std::time::{Duration, Instant};
 use structopt::StructOpt;
 use thiserror::Error;
 
+use crate::config::Configuration;
+
 mod config;
 
 #[derive(Debug, Clone, StructOpt)]
@@ -72,7 +74,7 @@ fn main2() -> Result<(), CommandError> {
     if geteuid() != ROOT {
         return Err(CommandError::NotRoot);
     }
-    let config = crate::config::Configuration::read_from_file("/etc/genie.ini")?;
+    let config = Configuration::read_from_file("/etc/genie.ini")?;
     log::debug!("config = {:?}", config);
 
     // Set up secure path.
@@ -90,7 +92,7 @@ fn main2() -> Result<(), CommandError> {
     }
 }
 
-fn initialize(opt: &Opt, config: &crate::config::Configuration) -> Result<(), CommandError> {
+fn initialize(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
     let systemd_pid: Option<Pid> = systemd_pid();
 
     if systemd_pid.is_some() {
@@ -128,7 +130,7 @@ fn initialize(opt: &Opt, config: &crate::config::Configuration) -> Result<(), Co
     })
 }
 
-fn shutdown(_opt: &Opt, _config: &crate::config::Configuration) -> Result<(), CommandError> {
+fn shutdown(_opt: &Opt, _config: &Configuration) -> Result<(), CommandError> {
     let systemd_pid: Option<Pid> = systemd_pid();
 
     let systemd_pid = systemd_pid.unwrap_or_else(|| todo!("error handling"));
