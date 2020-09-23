@@ -30,9 +30,6 @@ struct Opt {
     #[structopt(short, long)]
     verbose: bool,
 
-    // /// Display version information
-    // #[structopt(long)]
-    // version: bool,
     /// Initialize the bottle (if necessary) only.
     #[structopt(short, long)]
     initialize: bool,
