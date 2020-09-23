@@ -1,0 +1,18 @@
+[package]
+name = "genie"
+version = "0.1.0"
+authors = ["Masaki Hara <ackie.h.gmai@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bstr = "0.2.13"
+nix = "0.18.0"
+rust-ini = "0.15.3"
+thiserror = "1.0.20"
+log = "0.4.11"
+structopt = "0.3.17"
+
+[features]
+local = []
