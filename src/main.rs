@@ -3,7 +3,7 @@ use bstr::{BStr, BString, ByteSlice};
 use nix::unistd::{getegid, geteuid, getgid, getuid, setresgid, setresuid, Gid, Pid, Uid, ROOT};
 use std::env::consts::OS;
 use std::ffi::OsString;
-use std::fs::{self, read_dir, File};
+use std::fs::{self, read_dir, read_link, File};
 use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::exit;
@@ -14,11 +14,6 @@ use structopt::StructOpt;
 use thiserror::Error;
 
 mod config;
-
-#[cfg(feature = "local")]
-const PREFIX: &str = "/usr/local";
-#[cfg(not(feature = "local"))]
-const PREFIX: &str = "/usr";
 
 #[derive(Debug, Clone, StructOpt)]
 #[structopt(
@@ -45,6 +40,9 @@ struct Opt {
     /// Shut down systemd and exit the bottle.
     #[structopt(short = "u", long, conflicts_with_all(&["initialize", "command", "command"]))]
     shutdown: bool,
+
+    #[structopt(skip)]
+    prefix: String,
 }
 
 fn main() {
@@ -55,10 +53,12 @@ fn main() {
 }
 
 fn main2() -> Result<(), CommandError> {
-    let opt = Opt::from_args();
+    let mut opt = Opt::from_args();
     if !opt.initialize && !opt.shell && opt.command.is_none() && !opt.shutdown {
         return Err(CommandError::NoCommand);
     }
+    opt.prefix = infer_prefix();
+    let opt = opt;
 
     if OS != "linux" {
         return Err(CommandError::NotLinux);
@@ -90,7 +90,7 @@ fn main2() -> Result<(), CommandError> {
     }
 }
 
-fn initialize(_opt: &Opt, config: &crate::config::Configuration) -> Result<(), CommandError> {
+fn initialize(opt: &Opt, config: &crate::config::Configuration) -> Result<(), CommandError> {
     let systemd_pid: Option<Pid> = systemd_pid();
 
     if systemd_pid.is_some() {
@@ -99,7 +99,7 @@ fn initialize(_opt: &Opt, config: &crate::config::Configuration) -> Result<(), C
 
     rootify(|| -> Result<(), CommandError> {
         // Dump the envvars
-        let dump_cmd = format!("{}/libexec/genie/dumpwslenv.sh", PREFIX);
+        let dump_cmd = format!("{}/libexec/genie/dumpwslenv.sh", opt.prefix);
         let result = Command::new(&dump_cmd)
             .output()
             .map_err(|e| CommandError::CommandFailed(dump_cmd.clone(), e))?;
@@ -271,6 +271,21 @@ fn wait_for_exit(pid: Pid, deadline: Instant) {
         }
         sleep(Duration::from_millis(10));
     }
+}
+
+fn infer_prefix() -> String {
+    fn infer_prefix_impl() -> Option<String> {
+        let exec_path = read_link("/proc/self/exe").ok()?;
+        let exec_dir = exec_path.parent()?;
+        if exec_dir == Path::new("/usr/bin") {
+            return Some("/usr".into());
+        } else if exec_dir == Path::new("/usr/local/bin") {
+            return Some("/usr/local".into());
+        }
+        None
+    }
+
+    infer_prefix_impl().unwrap_or_else(|| "/usr/local".into())
 }
 
 fn is_wsl1() -> io::Result<bool> {
