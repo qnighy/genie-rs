@@ -150,9 +150,9 @@ fn initialize_bottle(opt: &Opt, config: &Configuration) -> Result<(), CommandErr
 fn shutdown(_opt: &Opt, _config: &Configuration) -> Result<(), CommandError> {
     let systemd_pid: Option<Pid> = systemd_pid();
 
-    let systemd_pid = systemd_pid.unwrap_or_else(|| todo!("error handling"));
+    let systemd_pid = systemd_pid.ok_or(CommandError::NoBottle)?;
     if systemd_pid.as_raw() == 1 {
-        todo!("error handling");
+        return Err(CommandError::ShutdownInsideBottle);
     }
 
     rootify(|| -> Result<(), CommandError> {
@@ -232,6 +232,10 @@ pub enum CommandError {
     CommandFailed(String, #[source] io::Error),
     #[error("command failed with status {1:?}: {0}")]
     CommandStatus(String, std::process::ExitStatus),
+    #[error("no bottle exists.")]
+    NoBottle,
+    #[error("cannot shut down bottle from inside bottle; exiting.")]
+    ShutdownInsideBottle,
 }
 
 fn systemd_pid() -> Option<Pid> {
