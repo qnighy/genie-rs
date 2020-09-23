@@ -99,35 +99,37 @@ fn initialize(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
         return Ok(());
     }
 
-    rootify(|| -> Result<(), CommandError> {
-        // Dump the envvars
-        let dump_cmd = format!("{}/libexec/genie/dumpwslenv.sh", opt.prefix);
-        let result = Command::new(&dump_cmd)
-            .output()
-            .map_err(|e| CommandError::CommandFailed(dump_cmd.clone(), e))?;
-        if !result.status.success() {
-            return Err(CommandError::CommandStatus(dump_cmd.clone(), result.status));
-        }
+    rootify(|| initialize_bottle(opt, config))
+}
 
-        // TODO: updateHostname
+fn initialize_bottle(opt: &Opt, config: &Configuration) -> Result<(), CommandError> {
+    // Dump the envvars
+    let dump_cmd = format!("{}/libexec/genie/dumpwslenv.sh", opt.prefix);
+    let result = Command::new(&dump_cmd)
+        .output()
+        .map_err(|e| CommandError::CommandFailed(dump_cmd.clone(), e))?;
+    if !result.status.success() {
+        return Err(CommandError::CommandStatus(dump_cmd.clone(), result.status));
+    }
 
-        // Run systemd in a container.
-        let result = Command::new("daemonize")
-            .arg(&config.unshare)
-            .args(&["-fp", "--propagation", "shared", "--mount-proc", "systemd"])
-            .output()
-            .map_err(|e| CommandError::CommandFailed("daemonize".into(), e))?;
-        if !result.status.success() {
-            return Err(CommandError::CommandStatus(
-                "daemonize".into(),
-                result.status,
-            ));
-        }
+    // TODO: updateHostname
 
-        wait_for_systemd_up(Instant::now() + Duration::from_secs(16));
+    // Run systemd in a container.
+    let result = Command::new("daemonize")
+        .arg(&config.unshare)
+        .args(&["-fp", "--propagation", "shared", "--mount-proc", "systemd"])
+        .output()
+        .map_err(|e| CommandError::CommandFailed("daemonize".into(), e))?;
+    if !result.status.success() {
+        return Err(CommandError::CommandStatus(
+            "daemonize".into(),
+            result.status,
+        ));
+    }
 
-        Ok(())
-    })
+    wait_for_systemd_up(Instant::now() + Duration::from_secs(16));
+
+    Ok(())
 }
 
 fn shutdown(_opt: &Opt, _config: &Configuration) -> Result<(), CommandError> {
